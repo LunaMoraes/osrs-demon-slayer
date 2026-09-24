@@ -56,18 +56,19 @@ final class MonsterCatalog
 		String source;
 		Map<String, Monster> npcs;
 		List<String> excludedBossNames;
+		List<String> excludedKcNames;
 	}
 
 	private final Map<Integer, Monster> byId;
 	private final Map<String, Monster> bossesByName;
-	private final Set<String> excludedBossNames;
+	private final Set<String> excludedKcNames;
 
 	private MonsterCatalog(Map<Integer, Monster> byId, Map<String, Monster> bossesByName,
-		Set<String> excludedBossNames)
+		Set<String> excludedKcNames)
 	{
 		this.byId = Collections.unmodifiableMap(byId);
 		this.bossesByName = Collections.unmodifiableMap(bossesByName);
-		this.excludedBossNames = Collections.unmodifiableSet(excludedBossNames);
+		this.excludedKcNames = Collections.unmodifiableSet(excludedKcNames);
 	}
 
 	static MonsterCatalog load(Gson gson)
@@ -131,6 +132,16 @@ final class MonsterCatalog
 				}
 			}
 		}
+		if (document.excludedKcNames != null)
+		{
+			for (String name : document.excludedKcNames)
+			{
+				if (name != null)
+				{
+					excluded.add(normalize(name));
+				}
+			}
+		}
 		return new MonsterCatalog(ids, bosses, excluded);
 	}
 
@@ -160,9 +171,9 @@ final class MonsterCatalog
 		return bossesByName.get(normalize(name));
 	}
 
-	boolean isExcludedBoss(String name)
+	boolean isExcludedKc(String name)
 	{
-		return excludedBossNames.contains(normalize(name));
+		return excludedKcNames.contains(normalize(name));
 	}
 
 	int size()

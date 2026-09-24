@@ -34,7 +34,7 @@ final class BossSync
 			MonsterCatalog.Monster monster = catalog.bossByName(entry.getKey());
 			if (monster == null)
 			{
-				if (!catalog.isExcludedBoss(entry.getKey()))
+				if (!catalog.isExcludedKc(entry.getKey()))
 				{
 					result.unresolved.add(entry.getKey());
 				}

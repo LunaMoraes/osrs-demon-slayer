@@ -17,6 +17,12 @@ OUTPUT = Path(__file__).resolve().parents[1] / "src/main/resources/com/demonslay
 FIELDS = "'page_name','page_name_sub','name','id','attribute','combat_level'"
 PAGE_SIZE = 500
 USER_AGENT = "DemonSlayerRuneLite/1.0 (monster metadata generator; https://github.com/runelite/plugin-hub)"
+# RuneLite stores activity/chest KC and encounter names alongside NPC bosses.
+# These labels have no eligible demon/undead NPC identity in the Wiki data.
+# https://github.com/runelite/runelite/wiki/Chat-Commands
+# https://oldschool.runescape.wiki/w/Royal_Titans
+EXCLUDED_KC_NAMES = ("Gauntlet", "Guardians of the Rift", "Lunar Chest",
+                     "Mimic", "Royal Titans")
 
 
 def fetch_rows(bosses_only=False):
@@ -90,7 +96,8 @@ def main():
     index, excluded = make_index(rows, bosses)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps({"source": SOURCE, "npcs": index,
-                                  "excludedBossNames": excluded}, ensure_ascii=False,
+                                  "excludedBossNames": excluded,
+                                  "excludedKcNames": EXCLUDED_KC_NAMES}, ensure_ascii=False,
                                  separators=(",", ":")) + "\n", encoding="utf-8")
     print("Wrote {} eligible NPC IDs from {} Wiki rows".format(len(index), len(rows)))
 
