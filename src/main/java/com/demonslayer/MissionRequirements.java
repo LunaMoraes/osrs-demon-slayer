@@ -44,6 +44,10 @@ final class MissionRequirements
 
 	boolean eligibleLocation(String target, String location)
 	{
+		if ("Sisterhood Sanctuary".equals(location))
+		{
+			return finished(Quest.PRIEST_IN_PERIL);
+		}
 		if ("Slayer Tower (main floors)".equals(location))
 		{
 			return finished(Quest.PRIEST_IN_PERIL);

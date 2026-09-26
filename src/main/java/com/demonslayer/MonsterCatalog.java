@@ -60,6 +60,7 @@ final class MonsterCatalog
 	{
 		String source;
 		Map<String, Monster> npcs;
+		Map<String, Integer> historicalBossNpcIds;
 		List<String> excludedBossNames;
 		List<String> excludedKcNames;
 	}
@@ -132,6 +133,20 @@ final class MonsterCatalog
 			else
 			{
 				addNamed(normals, monster.name, monster);
+			}
+		}
+		if (document.historicalBossNpcIds != null)
+		{
+			for (Map.Entry<String, Integer> selection : document.historicalBossNpcIds.entrySet())
+			{
+				Monster selected = ids.get(selection.getValue());
+				if (selected == null || !selected.boss
+					|| !normalize(selected.page).equals(normalize(selection.getKey())))
+				{
+					throw new JsonParseException("Invalid historical boss variant: " + selection.getKey());
+				}
+				bosses.put(normalize(selected.name), selected);
+				bosses.put(normalize(selected.page), selected);
 			}
 		}
 		Set<String> excluded = new HashSet<>();

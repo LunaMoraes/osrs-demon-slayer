@@ -25,6 +25,10 @@ EXCLUDED_KC_NAMES = ("Gauntlet", "Guardians of the Rift", "Lunar Chest",
                      "Mimic", "Royal Titans")
 # A quest variant puts this ordinary species on the Wiki boss category page.
 NON_BOSS_PAGES = {"Black demon"}
+# Explicit repeatable forms; never infer quest/awakened status from level order.
+# https://oldschool.runescape.wiki/w/Vorkath
+# https://oldschool.runescape.wiki/w/Duke_Sucellus
+HISTORICAL_BOSS_NPC_IDS = {"Vorkath": 8061, "Duke Sucellus": 12191}
 
 
 def fetch_rows(bosses_only=False):
@@ -103,6 +107,7 @@ def main():
     index, excluded = make_index(rows, bosses)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps({"source": SOURCE, "npcs": index,
+                                  "historicalBossNpcIds": HISTORICAL_BOSS_NPC_IDS,
                                   "excludedBossNames": excluded,
                                   "excludedKcNames": EXCLUDED_KC_NAMES}, ensure_ascii=False,
                                  separators=(",", ":")) + "\n", encoding="utf-8")

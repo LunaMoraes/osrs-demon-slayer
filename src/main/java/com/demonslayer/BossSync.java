@@ -22,6 +22,14 @@ final class BossSync
 		this.catalog = catalog;
 	}
 
+	/** Explicit user refresh restores historical KC even after a progression reset. */
+	Result refreshKnown(Progression.Profile profile, Map<String, Integer> known)
+	{
+		profile.resetBossKc = false;
+		profile.bossKcBaselines.clear();
+		return importKnown(profile, known);
+	}
+
 	Result importKnown(Progression.Profile profile, Map<String, Integer> known)
 	{
 		Result result = new Result();
@@ -41,14 +49,20 @@ final class BossSync
 				continue;
 			}
 			String key = key(monster);
-			Progression.Record record = Progression.getOrCreate(profile.bossRecords, key, monster);
+			Progression.Record record = profile.bossRecords.get(key);
+			long recordedKills = record == null ? 0 : record.kills;
 			Integer baseline = profile.bossKcBaselines.get(key);
 			if (profile.resetBossKc && baseline == null)
 			{
-				profile.bossKcBaselines.put(key, (int) Math.max(0, (long) entry.getValue() - record.kills));
+				profile.bossKcBaselines.put(key, (int) Math.max(0, (long) entry.getValue() - recordedKills));
 				continue;
 			}
-			long delta = Math.max(0, (long) entry.getValue() - (baseline == null ? 0 : baseline) - record.kills);
+			long delta = Math.max(0, (long) entry.getValue() - (baseline == null ? 0 : baseline) - recordedKills);
+			if (delta == 0)
+			{
+				continue;
+			}
+			record = Progression.getOrCreate(profile.bossRecords, key, monster);
 			result.importedKills += delta;
 			result.awardedXp += Progression.award(profile, record, delta, monster.level);
 		}

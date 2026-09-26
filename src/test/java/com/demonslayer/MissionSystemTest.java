@@ -16,6 +16,35 @@ public class MissionSystemTest
 	}, (target, location) -> true);
 
 	@Test
+	public void pyrefiendAssignmentsSelectExactlyOneLocationAndRepairOldMission()
+	{
+		String[] names = {"Fremennik Slayer Dungeon", "Isle of Souls", "Smoke Dungeon", "Sisterhood Sanctuary"};
+		int[] regions = {11164, 9006, 12946, 15512};
+		for (int i = 0; i < names.length; i++)
+		{
+			final String destination = names[i];
+			MissionSystem system = new MissionSystem(catalog, new Gson(), new Random(1),
+				(target, location) -> destination.equals(location));
+			MissionSystem.Mission mission = system.generateEligibleMission((target, boss) -> !boss && "Pyrefiend".equals(target));
+			assertEquals(destination, mission.location);
+			Progression.Profile profile = new Progression.Profile();
+			profile.activeMission = mission;
+			system.liveKill(profile, catalog.byId(433), 433, -1, 43, (target, boss) -> false);
+			assertEquals(0, mission.progress);
+			system.liveKill(profile, catalog.byId(433), 433, regions[i], 43, (target, boss) -> false);
+			assertEquals(1, mission.progress);
+			mission.location = "Fremennik, Isle of Souls, Smoke Dungeon or Sisterhood Sanctuary";
+			mission.regionIds = null;
+			int required = mission.required;
+			assertTrue(system.repairLegacyLocation(mission));
+			assertEquals(destination, mission.location);
+			assertEquals(1, mission.progress);
+			assertEquals(required, mission.required);
+			assertFalse(system.repairLegacyLocation(mission));
+		}
+	}
+
+	@Test
 	public void wildernessAssignmentCountsOnlyItsNpcVariant()
 	{
 		Progression.Profile profile = new Progression.Profile();

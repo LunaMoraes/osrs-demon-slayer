@@ -185,6 +185,10 @@ public class DemonSlayerPlugin extends Plugin
 		try
 		{
 			profile = store.loadActive();
+			if (profile != null && missions.repairLegacyLocation(profile.activeMission))
+			{
+				store.saveActive();
+			}
 			overlay.setProfile(profile);
 			if (profile != null)
 			{
@@ -566,7 +570,8 @@ public class DemonSlayerPlugin extends Plugin
 			return;
 		}
 		Map<String, Integer> known = knownBossKc();
-		BossSync.Result result = bossSync.importKnown(profile, known);
+		BossSync.Result result = automatic ? bossSync.importKnown(profile, known)
+			: bossSync.refreshKnown(profile, known);
 		profile.lastBossSync = System.currentTimeMillis();
 		store.saveActive();
 		syncMessage = automatic && result.importedKills == 0 ? null

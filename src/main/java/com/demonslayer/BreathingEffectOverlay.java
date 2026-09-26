@@ -30,6 +30,7 @@ final class BreathingEffectOverlay extends Overlay
 		LocalPoint location;
 		int plane;
 		int size;
+		int height;
 		long started;
 	}
 
@@ -43,7 +44,7 @@ final class BreathingEffectOverlay extends Overlay
 		setLayer(OverlayLayer.ABOVE_SCENE);
 	}
 
-	void play(String style, LocalPoint location, int plane, int size)
+	void play(String style, LocalPoint location, int plane, int size, int height)
 	{
 		if (style == null || location == null)
 		{
@@ -58,6 +59,7 @@ final class BreathingEffectOverlay extends Overlay
 		effect.location = location;
 		effect.plane = plane;
 		effect.size = Math.max(1, Math.min(size, 5));
+		effect.height = Math.max(80, height);
 		effect.started = System.currentTimeMillis();
 		effects.add(effect);
 	}
@@ -80,22 +82,33 @@ final class BreathingEffectOverlay extends Overlay
 				iterator.remove();
 				continue;
 			}
-			Point point = Perspective.localToCanvas(client, effect.location, effect.plane);
-			if (point == null)
+			// Two world-space planes intersect around the body. Camera projection supplies
+			// perspective and foreshortening instead of a fixed screen-space circle.
+			int height = effect.height / 2;
+			Point center = Perspective.localToCanvas(client, effect.location, effect.plane, height);
+			if (center == null) continue;
+			int radius = (int) ((60 + effect.size * 32) * (.8 + progress * .55));
+			for (int layer = 0; layer < 2; layer++)
 			{
-				continue;
+				double angle = progress * 1.4 + layer * Math.PI / 2;
+				int dx = (int) (Math.cos(angle) * radius);
+				int dy = (int) (Math.sin(angle) * radius);
+				Point horizontal = Perspective.localToCanvas(client, effect.location.plus(dx, dy), effect.plane, height);
+				Point vertical = layer == 0
+					? Perspective.localToCanvas(client, effect.location.plus(-dy, dx), effect.plane, height + effect.height / 3)
+					: Perspective.localToCanvas(client, effect.location, effect.plane, height + effect.height / 2);
+				if (horizontal == null || vertical == null) continue;
+				Graphics2D g = (Graphics2D) graphics.create();
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g.transform(new AffineTransform((horizontal.getX() - center.getX()) / 60.0,
+					(horizontal.getY() - center.getY()) / 60.0,
+					(vertical.getX() - center.getX()) / 60.0,
+					(vertical.getY() - center.getY()) / 60.0, center.getX(), center.getY()));
+				g.setComposite(AlphaComposite.SrcOver.derive(Math.min(1f, (1 - progress) * 1.6f) * (layer == 0 ? .65f : 1f)));
+				draw(g, effect.style, 60, progress);
+				g.dispose();
 			}
-			Graphics2D g = (Graphics2D) graphics.create();
-			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g.translate(point.getX(), point.getY() - 24 - effect.size * 7);
-			int radius = 28 + effect.size * 12 + (int) (Math.sin(progress * Math.PI / 2) * 40);
-			Color color = color(effect.style);
-			g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(),
-				Math.max(0, Math.min(255, (int) (210 * (1 - progress))))));
-			g.setComposite(AlphaComposite.SrcOver.derive(Math.min(1f, (1 - progress) * 1.6f)));
-			g.setStroke(new BasicStroke(2.5f + effect.size / 2f));
-			draw(g, effect.style, radius, progress);
-			g.dispose();
+
 		}
 		return null;
 	}

@@ -279,14 +279,60 @@
     },
     {
       "target": "Pyrefiend",
-      "name": "Fremennik, Isle of Souls, Smoke Dungeon or Sisterhood Sanctuary",
+      "name": "Fremennik Slayer Dungeon",
       "npcIds": [
         433,
         434,
         435,
         436
       ],
-      "weight": 1
+      "weight": 1,
+      "regionIds": [
+        11164
+      ]
+    },
+    {
+      "target": "Pyrefiend",
+      "name": "Isle of Souls",
+      "npcIds": [
+        433,
+        434,
+        435,
+        436
+      ],
+      "weight": 1,
+      "regionIds": [
+        9006
+      ]
+    },
+    {
+      "target": "Pyrefiend",
+      "name": "Smoke Dungeon",
+      "npcIds": [
+        433,
+        434,
+        435,
+        436
+      ],
+      "weight": 1,
+      "regionIds": [
+        12946,
+        13202
+      ]
+    },
+    {
+      "target": "Pyrefiend",
+      "name": "Sisterhood Sanctuary",
+      "npcIds": [
+        433,
+        434,
+        435,
+        436
+      ],
+      "weight": 1,
+      "regionIds": [
+        15512
+      ]
     },
     {
       "target": "Demonic gorilla",

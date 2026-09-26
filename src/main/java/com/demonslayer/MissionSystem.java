@@ -175,6 +175,28 @@ final class MissionSystem
 		return result;
 	}
 
+	boolean repairLegacyLocation(Mission mission)
+	{
+		if (mission == null || !"Pyrefiend".equals(mission.target)
+			|| !"Fremennik, Isle of Souls, Smoke Dungeon or Sisterhood Sanctuary".equals(mission.location))
+		{
+			return false;
+		}
+		// The old row had no region restriction. Preserve earned progress and choose
+		// the first accessible, now-specific destination once when loading the profile.
+		for (Location location : locations.get(MonsterCatalog.normalize(mission.target)))
+		{
+			if (eligibleLocation.test(mission.target, location.name))
+			{
+				mission.location = location.name;
+				mission.npcIds = location.npcIds.clone();
+				mission.regionIds = location.regionIds.clone();
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private Mission assign(BiPredicate<String, Boolean> eligible)
 	{
 		List<MonsterCatalog.Monster> candidates = new ArrayList<>();

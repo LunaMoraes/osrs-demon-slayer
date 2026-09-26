@@ -15,6 +15,42 @@ public class BossSyncTest
 	private final BossSync sync = new BossSync(catalog);
 
 	@Test
+	public void historicalImportsUseRepeatableFormsAndPreserveExistingXp()
+	{
+		MonsterCatalog bundled = MonsterCatalog.load(new Gson());
+		BossSync importer = new BossSync(bundled);
+		assertEquals(392, bundled.byId(8058).level);
+		assertEquals(538, bundled.byId(12195).level);
+		assertEquals(732, bundled.bossByName("Vorkath").level);
+		assertEquals(758, bundled.bossByName("Duke Sucellus").level);
+		Progression.Profile profile = new Progression.Profile();
+		Progression.Record old = Progression.getOrCreate(profile.bossRecords, "vorkath", bundled.byId(8058));
+		Progression.award(profile, old, 10, 392);
+		assertEquals(732, importer.importKnown(profile, Collections.singletonMap("Vorkath", 11)).awardedXp);
+		assertEquals(3920 + 732, old.xp);
+		assertEquals(0, importer.importKnown(profile, Collections.singletonMap("Vorkath", 11)).awardedXp);
+		assertEquals(0, profile.missionXpBank);
+		assertEquals(758 * 3, importer.importKnown(profile, Collections.singletonMap("Duke Sucellus", 3)).awardedXp);
+	}
+
+	@Test
+	public void manualRefreshRestoresHistoryAfterResetWithoutDuplicatingLiveKills()
+	{
+		Progression.Profile profile = new Progression.Profile();
+		profile.resetBossKc = true;
+		profile.bossKcBaselines.put("vorkath", 5500);
+		assertEquals(0, sync.importKnown(profile, Collections.singletonMap("Vorkath", 5500)).importedKills);
+		assertEquals(0, profile.bossRecords.size());
+		sync.liveKill(profile, catalog.byId(8061), 5500, 5501, 732);
+		assertEquals(5500, sync.refreshKnown(profile, Collections.singletonMap("Vorkath", 5501)).importedKills);
+		assertEquals(5501, Progression.kills(profile.bossRecords));
+		assertEquals(5501L * 732, Progression.xp(profile));
+		assertEquals(0, profile.missionXpBank);
+		assertEquals(0, sync.refreshKnown(profile, Collections.singletonMap("Vorkath", 5501)).importedKills);
+		assertEquals(0, sync.importKnown(profile, Collections.singletonMap("Vorkath", 5501)).importedKills);
+	}
+
+	@Test
 	public void repeatedLowerAndMissingSyncs()
 	{
 		Progression.Profile profile = new Progression.Profile();
@@ -64,7 +100,7 @@ public class BossSyncTest
 		known.put("Vorkath", 2);
 		BossSync.Result result = bundledSync.importKnown(profile, known);
 		assertEquals(2, result.importedKills);
-		assertEquals(784, result.awardedXp);
+		assertEquals(1464, result.awardedXp);
 		assertEquals(Collections.singletonList("Unknown future boss"), result.unresolved);
 		assertEquals(2, Progression.kills(profile.bossRecords));
 	}
