@@ -12,3 +12,8 @@ nbproject/
 *.class
 __pycache__/
 credentials.properties
+
+# Local-only Demon Slayer developer controls
+.demon-slayer-dev
+local-debug.gradle
+src/localDebug/

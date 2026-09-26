@@ -1,0 +1,647 @@
+{
+  "locations": [
+    {
+      "target": "Imp",
+      "name": "Edgeville area",
+      "npcIds": [
+        5007
+      ],
+      "weight": 1,
+      "regionIds": [
+        12086,
+        12342,
+        12343
+      ]
+    },
+    {
+      "target": "Imp",
+      "name": "Rimmington",
+      "npcIds": [
+        5007
+      ],
+      "regionIds": [
+        11570
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Imp",
+      "name": "Draynor Village",
+      "npcIds": [
+        5007
+      ],
+      "regionIds": [
+        12338
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Icefiend",
+      "name": "Ice Mountain",
+      "npcIds": [
+        4813
+      ],
+      "weight": 1,
+      "regionIds": [
+        11830,
+        12086
+      ]
+    },
+    {
+      "target": "Zombie",
+      "name": "Stronghold of Security",
+      "npcIds": [
+        2501,
+        2502,
+        2503,
+        2504,
+        2505,
+        2506,
+        2507,
+        2508,
+        2509,
+        6741
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Zombie",
+      "name": "Entrana Dungeon",
+      "npcIds": [
+        64,
+        65,
+        66,
+        67,
+        68
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Zombie",
+      "name": "Shayzien Crypts",
+      "npcIds": [
+        8067,
+        8068,
+        8069
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Skeleton",
+      "name": "Stronghold of Security",
+      "npcIds": [
+        2520,
+        2521,
+        2522,
+        2523,
+        2524,
+        2525,
+        2526
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Skeleton",
+      "name": "Draynor Manor",
+      "npcIds": [
+        3565
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Skeleton",
+      "name": "Forthos Ruin",
+      "npcIds": [
+        10717,
+        10718,
+        10719,
+        10720,
+        10721
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Skeleton",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7265
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Skeleton",
+      "name": "Wilderness Agility Course",
+      "npcIds": [
+        13495,
+        13496,
+        13497,
+        13498,
+        13499,
+        13500,
+        13501
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Ghost",
+      "name": "Stronghold of Security",
+      "npcIds": [
+        2527,
+        2528,
+        2529,
+        2530,
+        2531,
+        2532,
+        2533,
+        2534
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Ghost",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7263,
+        7264
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Ghost",
+      "name": "Grave of Scorpius",
+      "npcIds": [
+        5370
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Ankou",
+      "name": "Stronghold of Security",
+      "npcIds": [
+        2514,
+        2515,
+        2516,
+        2517,
+        2518,
+        2519
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Ankou",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7257
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Ankou",
+      "name": "Wilderness Slayer Cave",
+      "npcIds": [
+        7864
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Lesser demon",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7247,
+        7248
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Lesser demon",
+      "name": "Wilderness Slayer Cave",
+      "npcIds": [
+        7865,
+        7866,
+        7867
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Greater demon",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7244,
+        7245,
+        7246
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Greater demon",
+      "name": "Wilderness Slayer Cave",
+      "npcIds": [
+        7871,
+        7872,
+        7873
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Black demon",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7242,
+        7243
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Black demon",
+      "name": "Wilderness Slayer Cave",
+      "npcIds": [
+        7874,
+        7875,
+        7876
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Hellhound",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7256
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Hellhound",
+      "name": "Wilderness Slayer Cave",
+      "npcIds": [
+        7877
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Pyrefiend",
+      "name": "Fremennik, Isle of Souls, Smoke Dungeon or Sisterhood Sanctuary",
+      "npcIds": [
+        433,
+        434,
+        435,
+        436
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Demonic gorilla",
+      "name": "Crash Site Cavern",
+      "npcIds": [
+        7144,
+        7145,
+        7146,
+        7147,
+        7148,
+        7149,
+        7152
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Tormented demon",
+      "name": "Ancient Guthixian Temple",
+      "npcIds": [
+        13599,
+        13600,
+        13601,
+        13602
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Crawling Hand",
+      "name": "Slayer Tower (main floors)",
+      "npcIds": [
+        448,
+        449,
+        450,
+        451,
+        452,
+        453,
+        454,
+        455,
+        456,
+        457
+      ],
+      "weight": 1,
+      "regionIds": [
+        13623
+      ]
+    },
+    {
+      "target": "Banshee",
+      "name": "Slayer Tower (main floors)",
+      "npcIds": [
+        414
+      ],
+      "weight": 1,
+      "regionIds": [
+        13623
+      ]
+    },
+    {
+      "target": "Bloodveld",
+      "name": "Slayer Tower (main floors)",
+      "npcIds": [
+        484,
+        485,
+        486,
+        487
+      ],
+      "weight": 1,
+      "regionIds": [
+        13623
+      ]
+    },
+    {
+      "target": "Aberrant spectre",
+      "name": "Slayer Tower (main floors)",
+      "npcIds": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "weight": 1,
+      "regionIds": [
+        13623
+      ]
+    },
+    {
+      "target": "Nechryael",
+      "name": "Slayer Tower (main floors)",
+      "npcIds": [
+        8,
+        11
+      ],
+      "weight": 1,
+      "regionIds": [
+        13623
+      ]
+    },
+    {
+      "target": "Abyssal demon",
+      "name": "Slayer Tower (main floors)",
+      "npcIds": [
+        415,
+        416
+      ],
+      "weight": 1,
+      "regionIds": [
+        13623
+      ]
+    },
+    {
+      "target": "Abyssal demon",
+      "name": "Catacombs of Kourend",
+      "npcIds": [
+        7241
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Loar Shade",
+      "name": "Mort'ton",
+      "npcIds": [
+        1277
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Greater Nechryael",
+      "name": "Catacombs of Kourend or Iorwerth Dungeon",
+      "npcIds": [
+        7278
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Greater Nechryael",
+      "name": "Wilderness Slayer Cave",
+      "npcIds": [
+        11240
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Feral vampyre",
+      "name": "Haunted Woods, Mort Ridge Mine or God Wars Dungeon",
+      "npcIds": [
+        3237
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Vyrewatch",
+      "name": "Meiyerditch, Darkmeyer or Slepe",
+      "npcIds": [
+        3709
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Vyrewatch Sentinel",
+      "name": "Darkmeyer",
+      "npcIds": [
+        9756,
+        9757,
+        9758,
+        9759,
+        9760,
+        9761,
+        9762,
+        9763
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Zombie pirate",
+      "name": "Chaos Temple (Wilderness)",
+      "npcIds": [
+        13489,
+        13490,
+        13491,
+        13492,
+        13493
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Zombie pirate",
+      "name": "Braindeath Island",
+      "npcIds": [
+        613,
+        614,
+        615,
+        616,
+        617,
+        618
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Zombie pirate",
+      "name": "Harmony Island",
+      "npcIds": [
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590,
+        591,
+        592,
+        593,
+        594,
+        595,
+        596,
+        597,
+        598,
+        599
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Zombie",
+      "name": "Edgeville Dungeon",
+      "npcIds": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ],
+      "regionIds": [
+        12442,
+        12698
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Skeleton",
+      "name": "Edgeville Dungeon",
+      "npcIds": [
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83
+      ],
+      "regionIds": [
+        12442,
+        12698
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Lesser demon",
+      "name": "Chasm of Fire",
+      "npcIds": [
+        2005,
+        2006,
+        2007,
+        2008,
+        2018
+      ],
+      "regionIds": [
+        5530,
+        5532,
+        5533
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Greater demon",
+      "name": "Chasm of Fire",
+      "npcIds": [
+        2025,
+        2026,
+        2027,
+        2028,
+        2029
+      ],
+      "regionIds": [
+        5530,
+        5532,
+        5533
+      ],
+      "weight": 1
+    },
+    {
+      "target": "Black demon",
+      "name": "Chasm of Fire",
+      "npcIds": [
+        240,
+        2048,
+        2049,
+        2050,
+        2051,
+        2052,
+        5874,
+        5875,
+        5876,
+        5877
+      ],
+      "regionIds": [
+        5530,
+        5532,
+        5533
+      ],
+      "weight": 1
+    }
+  ]
+}

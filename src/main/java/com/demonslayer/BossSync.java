@@ -42,7 +42,13 @@ final class BossSync
 			}
 			String key = key(monster);
 			Progression.Record record = Progression.getOrCreate(profile.bossRecords, key, monster);
-			long delta = Math.max(0, (long) entry.getValue() - record.kills);
+			Integer baseline = profile.bossKcBaselines.get(key);
+			if (profile.resetBossKc && baseline == null)
+			{
+				profile.bossKcBaselines.put(key, (int) Math.max(0, (long) entry.getValue() - record.kills));
+				continue;
+			}
+			long delta = Math.max(0, (long) entry.getValue() - (baseline == null ? 0 : baseline) - record.kills);
 			result.importedKills += delta;
 			result.awardedXp += Progression.award(profile, record, delta, monster.level);
 		}
@@ -56,7 +62,15 @@ final class BossSync
 	{
 		String key = key(monster);
 		Progression.Record record = Progression.getOrCreate(profile.bossRecords, key, monster);
-		if (afterKc > beforeKc && record.kills >= afterKc)
+		Integer baseline = profile.bossKcBaselines.get(key);
+		if (profile.resetBossKc && baseline != null && beforeKc >= 0 && afterKc > beforeKc
+			&& baseline == afterKc && record.kills == 0)
+		{
+			// A first KC observation can arrive between death and loot confirmation.
+			baseline = Math.max(0, beforeKc);
+			profile.bossKcBaselines.put(key, baseline);
+		}
+		if (afterKc > beforeKc && record.kills >= (long) afterKc - (baseline == null ? 0 : baseline))
 		{
 			return 0;
 		}

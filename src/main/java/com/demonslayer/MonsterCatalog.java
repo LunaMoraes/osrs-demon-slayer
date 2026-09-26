@@ -35,6 +35,11 @@ final class MonsterCatalog
 			return hasAttribute("undead");
 		}
 
+		boolean vampire()
+		{
+			return hasAttribute("vampire");
+		}
+
 		private boolean hasAttribute(String expected)
 		{
 			if (attributes != null)
@@ -61,13 +66,16 @@ final class MonsterCatalog
 
 	private final Map<Integer, Monster> byId;
 	private final Map<String, Monster> bossesByName;
+	private final Map<String, Monster> normalsByName;
 	private final Set<String> excludedKcNames;
 
 	private MonsterCatalog(Map<Integer, Monster> byId, Map<String, Monster> bossesByName,
+		Map<String, Monster> normalsByName,
 		Set<String> excludedKcNames)
 	{
 		this.byId = Collections.unmodifiableMap(byId);
 		this.bossesByName = Collections.unmodifiableMap(bossesByName);
+		this.normalsByName = Collections.unmodifiableMap(normalsByName);
 		this.excludedKcNames = Collections.unmodifiableSet(excludedKcNames);
 	}
 
@@ -97,6 +105,7 @@ final class MonsterCatalog
 		}
 		Map<Integer, Monster> ids = new HashMap<>();
 		Map<String, Monster> bosses = new HashMap<>();
+		Map<String, Monster> normals = new HashMap<>();
 		for (Map.Entry<String, Monster> row : document.npcs.entrySet())
 		{
 			Monster monster = row.getValue();
@@ -110,15 +119,19 @@ final class MonsterCatalog
 				throw new JsonParseException("Invalid NPC ID " + row.getKey(), e);
 			}
 			if (id <= 0 || monster == null || monster.name == null || monster.page == null
-				|| monster.level <= 0 || (!monster.demon() && !monster.undead()))
+				|| monster.level <= 0 || (!monster.demon() && !monster.undead() && !monster.vampire()))
 			{
 				throw new JsonParseException("Invalid monster catalog row " + row.getKey());
 			}
 			ids.put(id, monster);
 			if (monster.boss)
 			{
-				addBoss(bosses, monster.name, monster);
-				addBoss(bosses, monster.page, monster);
+				addNamed(bosses, monster.name, monster);
+				addNamed(bosses, monster.page, monster);
+			}
+			else
+			{
+				addNamed(normals, monster.name, monster);
 			}
 		}
 		Set<String> excluded = new HashSet<>();
@@ -142,10 +155,10 @@ final class MonsterCatalog
 				}
 			}
 		}
-		return new MonsterCatalog(ids, bosses, excluded);
+		return new MonsterCatalog(ids, bosses, normals, excluded);
 	}
 
-	private static void addBoss(Map<String, Monster> bosses, String name, Monster monster)
+	private static void addNamed(Map<String, Monster> bosses, String name, Monster monster)
 	{
 		String key = normalize(name);
 		Monster previous = bosses.get(key);
@@ -169,6 +182,11 @@ final class MonsterCatalog
 	Monster bossByName(String name)
 	{
 		return bossesByName.get(normalize(name));
+	}
+
+	Monster byName(String name, boolean boss)
+	{
+		return (boss ? bossesByName : normalsByName).get(normalize(name));
 	}
 
 	boolean isExcludedKc(String name)

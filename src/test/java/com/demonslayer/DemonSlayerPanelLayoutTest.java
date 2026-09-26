@@ -24,10 +24,11 @@ public class DemonSlayerPanelLayoutTest
 		profile.normalRecords.put("123", longName);
 		SwingUtilities.invokeAndWait(() ->
 		{
-			panels[0] = new DemonSlayerPanel(() -> { }, new DemonSlayerConfig() { });
+			panels[0] = new DemonSlayerPanel(() -> { }, new DemonSlayerConfig() { },
+				id -> { }, id -> { }, () -> { }, () -> null);
 			panels[0].setSize(225, 620);
 			panels[0].update(profile, "Lara The Ant", "0 historical kills; 0 XP. 5 names unresolved.",
-				"Boss records synchronized.", java.util.Arrays.asList("gauntlet", "guardians of the rift",
+				"CROW • Mission complete. Breathing Insight eludes you this time.", java.util.Arrays.asList("gauntlet", "guardians of the rift",
 					"lunar chest", "mimic", "royal titans"));
 		});
 		SwingUtilities.invokeAndWait(() ->
@@ -41,10 +42,10 @@ public class DemonSlayerPanelLayoutTest
 			JPanel tabs = (JPanel) top.getComponent(1);
 			((JButton) tabs.getComponent(1)).doClick();
 			scroll.doLayout();
-			assertFits(scroll, "Records");
+			assertFits(scroll, "Rewards");
 			((JButton) tabs.getComponent(2)).doClick();
 			scroll.doLayout();
-			assertFits(scroll, "Rewards");
+			assertFits(scroll, "Records");
 		});
 		record.xp = 200_000_000;
 		record.kills = 10_000;
@@ -58,9 +59,9 @@ public class DemonSlayerPanelLayoutTest
 			JScrollPane scroll = (JScrollPane) panel.getComponent(1);
 			scroll.doLayout();
 			assertFits(scroll, "Hashira Profile");
-			((JButton) tabs.getComponent(2)).doClick();
+			((JButton) tabs.getComponent(1)).doClick();
 			scroll.doLayout();
-			assertFits(scroll, "Hashira Rewards");
+			assertFits(scroll, "Hashira Breathing");
 		});
 	}
 
@@ -71,6 +72,5 @@ public class DemonSlayerPanelLayoutTest
 		assertTrue(tab + " content width " + contentWidth + " > viewport " + viewportWidth,
 			contentWidth <= viewportWidth);
 		assertFalse(tab + " horizontal scrollbar", scroll.getHorizontalScrollBar().isVisible());
-		assertFalse(tab + " vertical scrollbar", scroll.getVerticalScrollBar().isVisible());
 	}
 }

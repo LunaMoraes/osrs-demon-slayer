@@ -8,6 +8,9 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.FlowLayout;
+import java.awt.Point;
+import java.awt.Window;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.text.NumberFormat;
@@ -18,10 +21,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -51,6 +58,10 @@ final class DemonSlayerPanel extends PluginPanel
 	private final Header header = new Header();
 	private final Runnable onSync;
 	private final DemonSlayerConfig config;
+	private final Consumer<String> onUnlock;
+	private final Consumer<String> onEquip;
+	private final Runnable onReset;
+	private final Supplier<JPanel> developerSection;
 	private int tab;
 	private Progression.Profile profile;
 	private String playerName = "Slayer";
@@ -58,10 +69,16 @@ final class DemonSlayerPanel extends PluginPanel
 	private String crowMessage;
 	private List<String> unresolved = new ArrayList<>();
 
-	DemonSlayerPanel(Runnable onSync, DemonSlayerConfig config)
+	DemonSlayerPanel(Runnable onSync, DemonSlayerConfig config,
+		Consumer<String> onUnlock, Consumer<String> onEquip, Runnable onReset,
+		Supplier<JPanel> developerSection)
 	{
 		this.onSync = onSync;
 		this.config = config;
+		this.onUnlock = onUnlock;
+		this.onEquip = onEquip;
+		this.onReset = onReset;
+		this.developerSection = developerSection;
 		setLayout(new BorderLayout());
 		setBackground(INK);
 		JPanel top = new JPanel(new BorderLayout());
@@ -99,7 +116,7 @@ final class DemonSlayerPanel extends PluginPanel
 	{
 		header.repaint();
 		tabs.removeAll();
-		String[] names = {"PROFILE", "RECORDS", "REWARDS"};
+		String[] names = {"PROFILE", "REWARDS", "RECORD"};
 		for (int i = 0; i < names.length; i++)
 		{
 			final int index = i;
@@ -131,11 +148,11 @@ final class DemonSlayerPanel extends PluginPanel
 		}
 		else if (tab == 1)
 		{
-			showRecords();
+			showBreathing();
 		}
 		else
 		{
-			showRewards();
+			showRecords();
 		}
 		body.add(Box.createVerticalGlue());
 		body.revalidate();
@@ -182,6 +199,7 @@ final class DemonSlayerPanel extends PluginPanel
 			skill.add(label("CROW  •  " + crowMessage, GOLD, 9, Font.PLAIN));
 		}
 		append(skill);
+		showMissions();
 
 		JPanel kills = card();
 		kills.add(label("EXTERMINATIONS", GOLD, 11, Font.BOLD));
@@ -200,7 +218,10 @@ final class DemonSlayerPanel extends PluginPanel
 		if (syncMessage != null)
 		{
 			kills.add(Box.createVerticalStrut(5));
-			kills.add(label(syncMessage, MUTED, 9, Font.PLAIN));
+			JLabel summary = label(syncMessage.length() > 27 ? syncMessage.substring(0, 26) + "…"
+				: syncMessage, MUTED, 9, Font.PLAIN);
+			summary.setToolTipText(syncMessage);
+			kills.add(summary);
 		}
 		if (!unresolved.isEmpty())
 		{
@@ -218,6 +239,206 @@ final class DemonSlayerPanel extends PluginPanel
 				DateFormat.SHORT).format(new Date(profile.lastBossSync)), MUTED, 9, Font.PLAIN));
 		}
 		append(kills);
+		JPanel breathing = card();
+		breathing.add(label("BREATHING STYLE", GOLD, 11, Font.BOLD));
+		BreathingProgression.Style active = BreathingProgression.style(profile.activeBreathingStyle);
+		breathing.add(label(active == null ? "None equipped" : active.name + " Breathing", TEXT, 11, Font.PLAIN));
+		breathing.add(row("Available points", profile.breathingPointsAvailable));
+		append(breathing);
+		JPanel rewards = card();
+		rewards.add(label("CORPS REWARDS", GOLD, 11, Font.BOLD));
+		rewards.add(label("Rank badge: " + RANK_NUMERALS[Progression.rankIndex(level)], TEXT, 10, Font.PLAIN));
+		rewards.add(label("Boss crest: " + Progression.bossTier(profile) + " / 6", TEXT, 10, Font.PLAIN));
+		rewards.add(label("Mastery border: " + Progression.masteryTier(profile) + " / 4", TEXT, 10, Font.PLAIN));
+		rewards.add(label("Local title: " + (level >= 50 && config.localTitle() ? "on" : "off"),
+			MUTED, 10, Font.PLAIN));
+		append(rewards);
+		JPanel reset = card();
+		reset.add(label("PROGRESSION", GOLD, 11, Font.BOLD));
+		JButton resetButton = button("RESET", false);
+		resetButton.setToolTipText("Reset Demon Slayer progression for this RuneScape profile");
+		resetButton.addActionListener(event -> confirmReset());
+		reset.add(resetButton);
+		append(reset);
+		JPanel debug = developerSection.get();
+		if (debug != null)
+		{
+			append(debug);
+		}
+	}
+
+	private void showMissions()
+	{
+		JPanel mission = card();
+		mission.add(label("KASUGAI CROW MISSIONS", GOLD, 11, Font.BOLD));
+		MissionSystem.Mission active = profile.activeMission;
+		if (active == null)
+		{
+			mission.add(label("No active mission", TEXT, 11, Font.PLAIN));
+			mission.add(label(NUMBER.format(Math.min(profile.missionXpBank, MissionSystem.XP_THRESHOLD))
+				+ " / " + MissionSystem.XP_THRESHOLD + " raw live XP to assignment", MUTED, 10, Font.PLAIN));
+		}
+		else
+		{
+			mission.add(label("Eliminate " + active.required + " " + active.target, TEXT, 11, Font.BOLD));
+			if (active.location != null)
+			{
+				mission.add(label("Location: " + active.location, GOLD, 10, Font.BOLD));
+			}
+			mission.add(label(active.progress + " / " + active.required + " confirmed kills", MUTED, 10, Font.PLAIN));
+			mission.add(label("Banked for next mission: " + NUMBER.format(profile.missionXpBank) + " XP",
+				MUTED, 10, Font.PLAIN));
+		}
+		mission.add(row("Missions completed", profile.missionsCompleted));
+		mission.add(label("Next Breathing Point chance: "
+			+ MissionSystem.nextChance(profile.breathingDryStreak) + "%", GOLD, 10, Font.BOLD));
+		mission.add(label("Dry streak: " + profile.breathingDryStreak, MUTED, 10, Font.PLAIN));
+		append(mission);
+	}
+
+	private void showBreathing()
+	{
+		JPanel card = card();
+		card.add(label("BREATHING TREE", GOLD, 11, Font.BOLD));
+		card.add(label("Points: " + profile.breathingPointsAvailable, TEXT, 11, Font.PLAIN));
+		card.add(label("Start at an outer style.", MUTED, 9, Font.PLAIN));
+		card.add(label("Follow its lineage inward.", MUTED, 9, Font.PLAIN));
+		JButton open = button("OPEN BREATHING TREE", false);
+		open.addActionListener(event -> openTree());
+		card.add(open);
+		append(card);
+		showRewards();
+	}
+
+	private void confirmReset()
+	{
+		int choice = JOptionPane.showConfirmDialog(this,
+			"Erase Demon Slayer XP, kills, missions, and Breathing progress for this RuneScape profile?\n"
+				+ "Your OSRS account and RuneLite boss KC will not change.",
+			"Reset Demon Slayer progression", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+		if (choice != JOptionPane.OK_OPTION)
+		{
+			return;
+		}
+		String typed = JOptionPane.showInputDialog(this, "Type RESET to confirm:",
+			"Final confirmation", JOptionPane.WARNING_MESSAGE);
+		if ("RESET".equals(typed))
+		{
+			onReset.run();
+		}
+	}
+
+	private void openTree()
+	{
+		Window owner = SwingUtilities.getWindowAncestor(this);
+		JDialog dialog = new JDialog(owner, "Breathing Tree", java.awt.Dialog.ModalityType.MODELESS);
+		JPanel frame = new JPanel(new BorderLayout());
+		frame.setBackground(INK);
+		frame.add(new TreeCanvas(profile, id -> {onUnlock.accept(id); dialog.dispose();},
+			id -> {onEquip.accept(id); dialog.dispose();}), BorderLayout.CENTER);
+		JButton close = button("CLOSE", false);
+		close.addActionListener(event -> dialog.dispose());
+		JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		bottom.setBackground(INK);
+		bottom.add(close);
+		frame.add(bottom, BorderLayout.SOUTH);
+		dialog.setContentPane(frame);
+		dialog.setSize(860, 720);
+		dialog.setResizable(false);
+		dialog.setLocationRelativeTo(this);
+		dialog.setVisible(true);
+	}
+
+	private static final class TreeCanvas extends JPanel
+	{
+		private final Map<String, Point> nodes = new HashMap<>();
+		private final Progression.Profile value;
+
+		TreeCanvas(Progression.Profile profile, Consumer<String> unlock, Consumer<String> equip)
+		{
+			value = profile;
+			setLayout(null);
+			setBackground(INK);
+			String[] ids = {"sun", "water", "flame", "wind", "thunder", "stone", "flower",
+				"serpent", "love", "mist", "beast", "sound", "insect"};
+			int[][] positions = {{420,325},{270,250},{540,235},{535,415},{300,440},{420,505},
+				{185,155},{125,290},{690,165},{710,375},{680,510},{175,535},{105,80}};
+			for (int i = 0; i < ids.length; i++)
+			{
+				String id = ids[i];
+				Point point = new Point(positions[i][0], positions[i][1]);
+				nodes.put(id, point);
+				BreathingProgression.Style style = BreathingProgression.style(id);
+				boolean owned = profile.unlockedBreathingStyles.contains(id);
+				boolean available = BreathingProgression.available(profile, id);
+				boolean active = id.equals(profile.activeBreathingStyle);
+				Color tint = BreathingEffectOverlay.color(id);
+				JButton node = new JButton()
+				{
+					@Override protected void paintComponent(Graphics graphics)
+					{
+						Graphics2D g = (Graphics2D) graphics.create();
+						g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+						int cx = getWidth() / 2;
+						g.setColor(new Color(tint.getRed(), tint.getGreen(), tint.getBlue(), active ? 65 : 22));
+						g.fillOval(cx - 31, 1, 62, 62);
+						g.setColor(active || owned ? tint : available ? GOLD : new Color(85,77,80));
+						g.setStroke(new BasicStroke(active ? 2.5f : 1.2f));
+						g.drawOval(cx - 26, 6, 52, 52);
+						g.translate(cx, 32);
+						BreathingEffectOverlay.draw(g, id, 16, .35f);
+						g.translate(-cx, -32);
+						g.setColor(active || owned ? TEXT : available ? GOLD : MUTED);
+						g.setFont(new Font("Serif", Font.BOLD, 14));
+						g.drawString(style.name, cx - g.getFontMetrics().stringWidth(style.name) / 2, 78);
+						String status = active ? "EQUIPPED" : owned ? "UNLOCKED" : available ? "1 POINT" : "LOCKED";
+						g.setFont(new Font("Dialog", Font.PLAIN, 9));
+						g.setColor(active ? tint : MUTED);
+						g.drawString(status, cx - g.getFontMetrics().stringWidth(status) / 2, 92);
+						g.dispose();
+					}
+				};
+				node.setBounds(point.x - 55, point.y - 32, 110, 98);
+				node.setContentAreaFilled(false);
+				node.setBorderPainted(false);
+				node.setFocusPainted(false);
+				node.setToolTipText(owned ? "Equip " + style.name : available ? "Unlock for one Breathing Point"
+					: "sun".equals(id) ? "Unlock Water, Flame, Wind, Thunder and Stone first" : "Unlock a connected outer style first");
+				node.setEnabled(owned || available);
+				node.addActionListener(event -> { if (owned) equip.accept(id); else unlock.accept(id); });
+				add(node);
+			}
+		}
+
+		@Override protected void paintComponent(Graphics graphics)
+		{
+			super.paintComponent(graphics);
+			Graphics2D g = (Graphics2D) graphics.create();
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setPaint(new java.awt.RadialGradientPaint(420, 325, 360,
+				new float[]{0, 1}, new Color[]{new Color(55,35,36), INK}));
+			g.fillRect(0, 0, getWidth(), getHeight());
+			g.setColor(GOLD);
+			g.setFont(new Font("Serif", Font.BOLD, 21));
+			g.drawString("BREATHING LINEAGES", 285, 38);
+			g.setFont(new Font("Dialog", Font.PLAIN, 11));
+			g.setColor(MUTED);
+			g.drawString(value.breathingPointsAvailable + " points available  /  Follow a branch toward Sun", 278, 59);
+			for (BreathingProgression.Style style : BreathingProgression.styles())
+			{
+				if (style.parent == null) continue;
+				Point a = nodes.get(style.id), b = nodes.get(style.parent);
+				double distance = a.distance(b);
+				double ux = (b.x-a.x)/distance, uy = (b.y-a.y)/distance;
+				boolean owned = value.unlockedBreathingStyles.contains(style.id);
+				g.setColor(owned ? BreathingEffectOverlay.color(style.id).darker() : new Color(66,53,56));
+				g.setStroke(new BasicStroke(owned ? 2f : 1f));
+				g.draw(new java.awt.geom.Line2D.Double(a.x+ux*39,a.y+uy*39,b.x-ux*39,b.y-uy*39));
+			}
+			g.setColor(MUTED);
+			g.drawString("Outer styles begin each lineage. Sun requires all five principal styles.", 215, 606);
+			g.dispose();
+		}
 	}
 
 	private void showRecords()
@@ -227,10 +448,33 @@ final class DemonSlayerPanel extends PluginPanel
 		summary.add(Box.createVerticalStrut(8));
 		summary.add(row("Demon", Progression.categoryKills(profile, true)));
 		summary.add(row("Undead", Progression.categoryKills(profile, false)));
-		summary.add(row("Total unique", Progression.kills(profile)));
+		summary.add(row("Vampire", Progression.vampireKills(profile)));
+		summary.add(row("Total kills", Progression.kills(profile)));
 		append(summary);
 		showRecordSection("DEMONS", true);
 		showRecordSection("UNDEAD", false);
+		showVampireRecords();
+	}
+
+	private void showVampireRecords()
+	{
+		JPanel section = card();
+		section.add(label("VAMPIRES", GOLD, 11, Font.BOLD));
+		List<Progression.Record> records = new ArrayList<>();
+		for (Progression.Record record : profile.normalRecords.values())
+		{
+			if (record.vampire) records.add(record);
+		}
+		for (Progression.Record record : profile.bossRecords.values())
+		{
+			if (record.vampire) records.add(record);
+		}
+		for (Progression.Record record : records)
+		{
+			section.add(label(record.name + "  •  " + record.kills + " kills", TEXT, 10, Font.PLAIN));
+		}
+		if (records.isEmpty()) section.add(label("No exterminations recorded yet.", MUTED, 10, Font.PLAIN));
+		append(section);
 	}
 
 	private void showRecordSection(String title, boolean demon)
@@ -271,7 +515,8 @@ final class DemonSlayerPanel extends PluginPanel
 
 	private static String type(Progression.Record record)
 	{
-		return record.demon && record.undead ? "Demon / Undead" : record.demon ? "Demon" : "Undead";
+		return record.vampire ? "Vampire" : record.demon && record.undead ? "Demon / Undead"
+			: record.demon ? "Demon" : "Undead";
 	}
 
 	private void showRewards()
@@ -285,9 +530,9 @@ final class DemonSlayerPanel extends PluginPanel
 		rank.add(label(Progression.RANKS[Progression.rankIndex(level)].toUpperCase(Locale.ROOT)
 			+ "  •  LEVEL " + level, TEXT, 14, Font.BOLD));
 		rank.add(Box.createVerticalStrut(7));
-		rank.add(reward("Rank frame applied to the sidebar", true));
+		rank.add(reward("Rank frame", true));
 		rank.add(reward(Progression.RANKS[Progression.rankIndex(level)] + " badge ("
-			+ RANK_NUMERALS[Progression.rankIndex(level)] + ") beside the crow", true));
+			+ RANK_NUMERALS[Progression.rankIndex(level)] + ")", true));
 		rank.add(reward("Corps XP counter on Profile", level >= 50
 			&& config.counterStyle() != DemonSlayerConfig.CounterStyle.CLASSIC));
 		rank.add(reward("Local title: " + (level < 50 ? "locked" : config.localTitle() ? "on" : "off in settings"),
@@ -312,7 +557,7 @@ final class DemonSlayerPanel extends PluginPanel
 		mastery.add(Box.createVerticalStrut(8));
 		for (long milestone : Progression.MASTERY_MILESTONES)
 		{
-			mastery.add(reward(NUMBER.format(milestone) + " XP  •  prestige border", xp >= milestone));
+			mastery.add(reward((milestone / 1_000_000) + "m XP  •  prestige border", xp >= milestone));
 		}
 		for (long milestone : Progression.BOSS_MILESTONES)
 		{
@@ -339,10 +584,13 @@ final class DemonSlayerPanel extends PluginPanel
 
 	private static JLabel label(String text, Color color, int size, int style)
 	{
-		JLabel result = new JLabel(text);
+		String escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+		JLabel result = new JLabel(text.length() > 27
+			? "<html><div style=" + '"' + "width:125px" + '"' + ">" + escaped + "</div></html>" : text);
 		result.setForeground(color);
 		result.setFont(new Font("Dialog", style, size));
 		result.setAlignmentX(LEFT_ALIGNMENT);
+		result.setMinimumSize(new Dimension(0, result.getPreferredSize().height));
 		return result;
 	}
 
@@ -355,7 +603,7 @@ final class DemonSlayerPanel extends PluginPanel
 		result.setBorder(BorderFactory.createCompoundBorder(
 			BorderFactory.createLineBorder(tier == 0 ? accent().darker() : GOLD,
 				tier == 0 ? 1 : tier + 1),
-			new EmptyBorder(10, 12, 10, 12)));
+			new EmptyBorder(10, 12 - tier, 10, 12 - tier)));
 		result.setAlignmentX(LEFT_ALIGNMENT);
 		return result;
 	}
@@ -526,3 +774,4 @@ final class DemonSlayerPanel extends PluginPanel
 		}
 	}
 }
+

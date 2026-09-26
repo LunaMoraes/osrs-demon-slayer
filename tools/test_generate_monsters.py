@@ -33,6 +33,21 @@ class MonsterGeneratorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             make_index(rows, [])
 
+    def test_vampyres_and_wilderness_zombie_pirates(self):
+        rows = [{"page_name": "Feral vampyre", "name": "Feral vampyre", "id": ["3237"],
+                 "attribute": ["vampyre1"], "combat_level": 61},
+                {"page_name": "Zombie pirate", "name": "Zombie pirate", "id": ["13489"],
+                 "attribute": [], "combat_level": 22}]
+        index, _ = make_index(rows, [])
+        self.assertEqual(["vampire"], index["3237"]["attributes"])
+        self.assertEqual(["undead"], index["13489"]["attributes"])
+
+    def test_black_demon_remains_normal_when_wiki_boss_category_matches_page(self):
+        row = {"page_name": "Black demon", "name": "Black demon", "id": ["7874"],
+               "attribute": ["demon"], "combat_level": 188}
+        index, _ = make_index([row], [row])
+        self.assertFalse(index["7874"]["boss"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -68,4 +68,39 @@ public class BossSyncTest
 		assertEquals(Collections.singletonList("Unknown future boss"), result.unresolved);
 		assertEquals(2, Progression.kills(profile.bossRecords));
 	}
+
+	@Test
+	public void resetBaselineBlocksHistoryButRecoversLaterKills()
+	{
+		Progression.Profile profile = new Progression.Profile();
+		profile.resetBossKc = true;
+		profile.bossKcBaselines.put("vorkath", 500);
+		assertEquals(0, sync.importKnown(profile, Collections.singletonMap("Vorkath", 500)).importedKills);
+		assertEquals(1, sync.importKnown(profile, Collections.singletonMap("Vorkath", 501)).importedKills);
+		assertEquals(1, Progression.kills(profile.bossRecords));
+	}
+
+	@Test
+	public void missingResetBaselineAccountsForLiveKill()
+	{
+		Progression.Profile profile = new Progression.Profile();
+		profile.resetBossKc = true;
+		MonsterCatalog.Monster vorkath = catalog.byId(8061);
+		sync.liveKill(profile, vorkath, -1, 501, 732);
+		assertEquals(0, sync.importKnown(profile, Collections.singletonMap("Vorkath", 501)).importedKills);
+		assertEquals(Integer.valueOf(500), profile.bossKcBaselines.get("vorkath"));
+		assertEquals(1, sync.importKnown(profile, Collections.singletonMap("Vorkath", 502)).importedKills);
+	}
+
+	@Test
+	public void firstKcSyncBetweenDeathAndLootDoesNotAbsorbTheLiveKill()
+	{
+		Progression.Profile profile = new Progression.Profile();
+		profile.resetBossKc = true;
+		MonsterCatalog.Monster vorkath = catalog.byId(8061);
+		assertEquals(0, sync.importKnown(profile, Collections.singletonMap("Vorkath", 501)).importedKills);
+		assertEquals(732, sync.liveKill(profile, vorkath, 500, 501, 732));
+		assertEquals(Integer.valueOf(500), profile.bossKcBaselines.get("vorkath"));
+		assertEquals(0, sync.importKnown(profile, Collections.singletonMap("Vorkath", 501)).importedKills);
+	}
 }

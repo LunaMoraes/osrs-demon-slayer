@@ -1,4 +1,4 @@
-"""Regenerate the bundled demon/undead NPC index from the OSRS Wiki Bucket API.
+"""Regenerate the bundled demon/undead/vampyre NPC index from the OSRS Wiki Bucket API.
 
 Run with Python 3: python tools/generate_monsters.py
 The Wiki is queried only while maintaining the plugin, never by plugin users.
@@ -23,6 +23,8 @@ USER_AGENT = "DemonSlayerRuneLite/1.0 (monster metadata generator; https://githu
 # https://oldschool.runescape.wiki/w/Royal_Titans
 EXCLUDED_KC_NAMES = ("Gauntlet", "Guardians of the Rift", "Lunar Chest",
                      "Mimic", "Royal Titans")
+# A quest variant puts this ordinary species on the Wiki boss category page.
+NON_BOSS_PAGES = {"Black demon"}
 
 
 def fetch_rows(bosses_only=False):
@@ -54,6 +56,11 @@ def make_index(rows, boss_rows):
             attributes = [attributes]
         attributes = sorted({str(a).strip().lower() for a in attributes})
         relevant = [a for a in attributes if a in ("demon", "undead")]
+        if any(a.startswith("vampyre") or a.startswith("vampire") for a in attributes):
+            relevant.append("vampire")
+        if row.get("page_name") == "Zombie pirate":
+            relevant.append("undead")
+        relevant = sorted(set(relevant))
         if not relevant:
             continue
         page = row.get("page_name")
@@ -69,7 +76,7 @@ def make_index(rows, boss_rows):
         if not isinstance(ids, list):
             raise ValueError("Eligible row has invalid NPC IDs: {}".format(row))
         entry = {"name": name, "page": page, "level": level,
-                 "attributes": relevant, "boss": page in boss_pages}
+                 "attributes": relevant, "boss": page in boss_pages and page not in NON_BOSS_PAGES}
         for raw_id in ids:
             if not str(raw_id).isdigit():
                 continue  # Wiki historical/non-game IDs are not live NPCs.

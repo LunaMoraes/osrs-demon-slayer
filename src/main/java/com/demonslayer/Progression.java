@@ -2,6 +2,8 @@ package com.demonslayer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import net.runelite.api.Experience;
 
 final class Progression
@@ -20,6 +22,7 @@ final class Progression
 		String name;
 		boolean demon;
 		boolean undead;
+		boolean vampire;
 		int level;
 		long kills;
 		long xp;
@@ -31,14 +34,30 @@ final class Progression
 			this.undead = undead;
 			this.level = level;
 		}
+
+		Record(String name, boolean demon, boolean undead, boolean vampire, int level)
+		{
+			this(name, demon, undead, level);
+			this.vampire = vampire;
+		}
 	}
 
 	static final class Profile
 	{
-		int version = 1;
+		int version = 2;
 		Map<String, Record> normalRecords = new LinkedHashMap<>();
 		Map<String, Record> bossRecords = new LinkedHashMap<>();
 		long lastBossSync;
+		long missionXpBank;
+		MissionSystem.Mission activeMission;
+		long missionsCompleted;
+		int breathingDryStreak;
+		int breathingPointsAvailable;
+		Set<String> unlockedBreathingStyles = new LinkedHashSet<>();
+		String activeBreathingStyle;
+		Map<String, Integer> bossKcBaselines = new LinkedHashMap<>();
+		boolean resetBossKc;
+		transient Integer developerXpOverride;
 	}
 
 	private Progression()
@@ -46,6 +65,11 @@ final class Progression
 	}
 
 	static long xp(Profile profile)
+	{
+		return profile.developerXpOverride == null ? realXp(profile) : profile.developerXpOverride;
+	}
+
+	private static long realXp(Profile profile)
 	{
 		return xp(profile.normalRecords) + xp(profile.bossRecords);
 	}
@@ -78,6 +102,24 @@ final class Progression
 	static long categoryKills(Profile profile, boolean demon)
 	{
 		return categoryKills(profile.normalRecords, demon) + categoryKills(profile.bossRecords, demon);
+	}
+
+	static long vampireKills(Profile profile)
+	{
+		return vampireKills(profile.normalRecords) + vampireKills(profile.bossRecords);
+	}
+
+	private static long vampireKills(Map<String, Record> records)
+	{
+		long result = 0;
+		for (Record record : records.values())
+		{
+			if (record.vampire)
+			{
+				result += record.kills;
+			}
+		}
+		return result;
 	}
 
 	private static long categoryKills(Map<String, Record> records, boolean demon)
@@ -144,7 +186,7 @@ final class Progression
 		{
 			return 0;
 		}
-		long remaining = Math.max(0, MAX_XP - xp(profile));
+		long remaining = Math.max(0, MAX_XP - realXp(profile));
 		long earned = Math.min(remaining, kills * (long) xpPerKill);
 		record.kills += kills;
 		record.xp += earned;
@@ -154,7 +196,7 @@ final class Progression
 	static Record getOrCreate(Map<String, Record> records, String key, MonsterCatalog.Monster monster)
 	{
 		return records.computeIfAbsent(key,
-			ignored -> new Record(monster.name, monster.demon(), monster.undead(), monster.level));
+			ignored -> new Record(monster.name, monster.demon(), monster.undead(), monster.vampire(), monster.level));
 	}
 
 	/** Keep Swing rendering on a stable copy while the client thread records kills. */
@@ -166,6 +208,16 @@ final class Progression
 		}
 		Profile copy = new Profile();
 		copy.lastBossSync = source.lastBossSync;
+		copy.missionXpBank = source.missionXpBank;
+		copy.activeMission = source.activeMission == null ? null : source.activeMission.copy();
+		copy.missionsCompleted = source.missionsCompleted;
+		copy.breathingDryStreak = source.breathingDryStreak;
+		copy.breathingPointsAvailable = source.breathingPointsAvailable;
+		copy.unlockedBreathingStyles.addAll(source.unlockedBreathingStyles);
+		copy.activeBreathingStyle = source.activeBreathingStyle;
+		copy.bossKcBaselines.putAll(source.bossKcBaselines);
+		copy.resetBossKc = source.resetBossKc;
+		copy.developerXpOverride = source.developerXpOverride;
 		copyRecords(source.normalRecords, copy.normalRecords);
 		copyRecords(source.bossRecords, copy.bossRecords);
 		return copy;
@@ -176,7 +228,8 @@ final class Progression
 		for (Map.Entry<String, Record> entry : from.entrySet())
 		{
 			Record original = entry.getValue();
-			Record record = new Record(original.name, original.demon, original.undead, original.level);
+			Record record = new Record(original.name, original.demon, original.undead,
+				original.vampire, original.level);
 			record.kills = original.kills;
 			record.xp = original.xp;
 			to.put(entry.getKey(), record);

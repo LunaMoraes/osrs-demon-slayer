@@ -67,3 +67,7 @@ tasks.register('shadowJar', Jar) {
 	archiveClassifier.set('shadow')
 	archiveFileName.set("${rootProject.name}-${project.version}-all.jar")
 }
+
+if (file('.demon-slayer-dev').exists() && file('local-debug.gradle').exists()) {
+	apply from: 'local-debug.gradle'
+}

@@ -10,12 +10,16 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.SoundEffectID;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.GameStateChanged;
@@ -53,6 +57,10 @@ public class DemonSlayerPlugin extends Plugin
 		int beforeKc = -1;
 		int deathTick;
 		boolean lootSeen;
+		LocalPoint deathLocation;
+		int deathPlane;
+		int deathRegionId;
+		int size;
 	}
 
 	@Inject private Client client;
@@ -69,11 +77,14 @@ public class DemonSlayerPlugin extends Plugin
 	private long nextToken;
 	private MonsterCatalog catalog;
 	private BossSync bossSync;
+	private MissionSystem missions;
+	private MissionRequirements missionRequirements;
 	private ProfileStore store;
 	private Progression.Profile profile;
 	private DemonSlayerPanel panel;
 	private DemonSlayerOverlay overlay;
 	private DemonSlayerCrowOverlay crowOverlay;
+	private BreathingEffectOverlay breathingOverlay;
 	private NavigationButton navigation;
 	private String syncMessage;
 	private String crowMessage;
@@ -84,17 +95,25 @@ public class DemonSlayerPlugin extends Plugin
 	{
 		catalog = MonsterCatalog.load(gson);
 		bossSync = new BossSync(catalog);
+		missionRequirements = new MissionRequirements(client);
+		missions = new MissionSystem(catalog, gson, new Random(), missionRequirements::eligibleLocation);
 		store = new ProfileStore(gson, ProfileStore.runelite(configManager));
-		panel = new DemonSlayerPanel(() -> clientThread.invoke((Runnable) this::syncBossRecords), config);
+		panel = new DemonSlayerPanel(() -> clientThread.invoke((Runnable) this::syncBossRecords), config,
+			id -> clientThread.invoke(() -> unlockStyle(id)),
+			id -> clientThread.invoke(() -> equipStyle(id)),
+			() -> clientThread.invoke((Runnable) this::resetProfile),
+			() -> DeveloperDebugHooks.create(this));
 		overlay = new DemonSlayerOverlay(client, config);
 		crowOverlay = new DemonSlayerCrowOverlay(client::getTickCount,
 			() -> client.getGameState() == GameState.LOGGED_IN);
+		breathingOverlay = new BreathingEffectOverlay(client);
 		BufferedImage icon = ImageUtil.loadImageResource(getClass(), "crow.png");
 		navigation = NavigationButton.builder().tooltip("Demon Slayer Corps").icon(icon)
 			.priority(8).panel(panel).build();
 		clientToolbar.addNavigation(navigation);
 		overlayManager.add(overlay);
 		overlayManager.add(crowOverlay);
+		overlayManager.add(breathingOverlay);
 		if (client.getGameState() == GameState.LOGGED_IN)
 		{
 			loadProfile();
@@ -119,6 +138,11 @@ public class DemonSlayerPlugin extends Plugin
 		{
 			overlayManager.remove(crowOverlay);
 			crowOverlay.clear();
+		}
+		if (breathingOverlay != null)
+		{
+			overlayManager.remove(breathingOverlay);
+			breathingOverlay.clear();
 		}
 		clearSession();
 		log.debug("Demon Slayer stopped");
@@ -196,6 +220,10 @@ public class DemonSlayerPlugin extends Plugin
 		{
 			crowOverlay.clear();
 		}
+		if (breathingOverlay != null)
+		{
+			breathingOverlay.clear();
+		}
 	}
 
 	@Subscribe
@@ -227,6 +255,7 @@ public class DemonSlayerPlugin extends Plugin
 			current.monster = monster;
 			current.npcId = effectiveId(npc);
 			current.combatLevel = combatLevel(npc);
+			current.size = npcSize(npc);
 		}
 	}
 
@@ -272,8 +301,13 @@ public class DemonSlayerPlugin extends Plugin
 		{
 			return;
 		}
+		WorldPoint worldLocation = npc.getWorldLocation();
+		int deathRegionId = worldLocation == null ? -1 : worldLocation.getRegionID();
 		if (state.monster.boss)
 		{
+			state.deathLocation = npc.getLocalLocation();
+			state.deathPlane = client.getPlane();
+			state.deathRegionId = deathRegionId;
 			state.deathTick = client.getTickCount();
 			pendingBosses.put(npc, state);
 			if (state.lootSeen || knownKc(state.monster) > state.beforeKc)
@@ -289,7 +323,17 @@ public class DemonSlayerPlugin extends Plugin
 			Progression.Record record = Progression.getOrCreate(profile.normalRecords,
 				Integer.toString(state.npcId), state.monster);
 			Progression.award(profile, record, 1, state.combatLevel);
+			MissionSystem.Result mission = missions.liveKill(profile, state.monster, state.npcId,
+				deathRegionId,
+				state.combatLevel, missionRequirements::eligible);
+			breathingOverlay.play(profile.activeBreathingStyle, npc.getLocalLocation(), client.getPlane(),
+				state.size);
 			afterAward(beforeXp, beforeLevel, beforeKills, false);
+			if (mission.message != null)
+			{
+				crow(mission.message);
+				refreshPanel();
+			}
 		}
 	}
 
@@ -371,6 +415,7 @@ public class DemonSlayerPlugin extends Plugin
 		state.monster = monster;
 		state.npcId = effectiveId(npc);
 		state.combatLevel = combatLevel(npc);
+		state.size = npcSize(npc);
 		tracked.put(npc, state);
 		attribution.spawn(state.token);
 		return state;
@@ -394,6 +439,12 @@ public class DemonSlayerPlugin extends Plugin
 		return composition == null ? -1 : composition.getCombatLevel();
 	}
 
+	private static int npcSize(NPC npc)
+	{
+		NPCComposition composition = npc.getTransformedComposition();
+		return composition == null ? 1 : composition.getSize();
+	}
+
 	private void confirmBoss(NPC npc, TrackedNpc state)
 	{
 		if (pendingBosses.remove(npc) == null || profile == null)
@@ -406,7 +457,16 @@ public class DemonSlayerPlugin extends Plugin
 		bossSync.liveKill(profile, state.monster, state.beforeKc, knownKc(state.monster), state.combatLevel);
 		if (Progression.kills(profile) != beforeKills)
 		{
+			MissionSystem.Result mission = missions.liveKill(profile, state.monster, state.npcId,
+				state.deathRegionId,
+				state.combatLevel, missionRequirements::eligible);
+			breathingOverlay.play(profile.activeBreathingStyle, state.deathLocation, state.deathPlane, state.size);
 			afterAward(beforeXp, beforeLevel, beforeKills, true);
+			if (mission.message != null)
+			{
+				crow(mission.message);
+				refreshPanel();
+			}
 		}
 	}
 
@@ -497,16 +557,7 @@ public class DemonSlayerPlugin extends Plugin
 			refreshPanel();
 			return;
 		}
-		Map<String, Integer> known = new HashMap<>();
-		for (String key : configManager.getRSProfileConfigurationKeys("killcount",
-			configManager.getRSProfileKey(), ""))
-		{
-			Integer value = configManager.getRSProfileConfiguration("killcount", key, int.class);
-			if (value != null && value >= 0)
-			{
-				known.put(key, value);
-			}
-		}
+		Map<String, Integer> known = knownBossKc();
 		BossSync.Result result = bossSync.importKnown(profile, known);
 		profile.lastBossSync = System.currentTimeMillis();
 		store.saveActive();
@@ -522,6 +573,91 @@ public class DemonSlayerPlugin extends Plugin
 			crow(result.importedKills + " boss records imported.");
 		}
 		refreshPanel();
+	}
+
+	private Map<String, Integer> knownBossKc()
+	{
+		Map<String, Integer> known = new HashMap<>();
+		String key = configManager.getRSProfileKey();
+		if (key == null)
+		{
+			return known;
+		}
+		for (String name : configManager.getRSProfileConfigurationKeys("killcount", key, ""))
+		{
+			Integer value = configManager.getRSProfileConfiguration("killcount", name, int.class);
+			if (value != null && value >= 0)
+			{
+				known.put(name, value);
+			}
+		}
+		return known;
+	}
+
+	private void resetProfile()
+	{
+		if (profile == null)
+		{
+			return;
+		}
+		Progression.Profile fresh = new Progression.Profile();
+		fresh.resetBossKc = true;
+		for (Map.Entry<String, Integer> entry : knownBossKc().entrySet())
+		{
+			MonsterCatalog.Monster monster = catalog.bossByName(entry.getKey());
+			if (monster != null)
+			{
+				fresh.bossKcBaselines.merge(BossSync.key(monster), entry.getValue(), Math::max);
+			}
+		}
+		store.resetActive(fresh);
+		profile = fresh;
+		tracked.clear();
+		pendingBosses.clear();
+		attribution.clear();
+		breathingOverlay.clear();
+		syncMessage = null;
+		unresolved = Collections.emptyList();
+		crow("Demon Slayer progression reset.");
+		refreshPanel();
+	}
+
+	private void unlockStyle(String id)
+	{
+		if (profile != null && BreathingProgression.unlock(profile, id))
+		{
+			store.saveActive();
+			BreathingProgression.Style style = BreathingProgression.style(id);
+			crow(style.name + " Breathing unlocked.");
+			refreshPanel();
+		}
+	}
+
+	private void equipStyle(String id)
+	{
+		if (profile != null && BreathingProgression.equip(profile, id))
+		{
+			store.saveActive();
+			refreshPanel();
+		}
+	}
+
+	void developerApply(Consumer<Progression.Profile> change)
+	{
+		clientThread.invoke(() ->
+		{
+			if (profile != null)
+			{
+				change.accept(profile);
+				store.saveActive();
+				refreshPanel();
+			}
+		});
+	}
+
+	MissionSystem.Mission developerGenerateMission()
+	{
+		return missions.generateEligibleMission(missionRequirements::eligible);
 	}
 
 	private void crow(String message)
