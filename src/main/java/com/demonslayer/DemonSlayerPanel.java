@@ -193,6 +193,10 @@ final class DemonSlayerPanel extends PluginPanel
 			skill.add(label(NUMBER.format(Progression.mastery(profile)) + " XP", TEXT, 11, Font.BOLD));
 			skill.add(label("Total XP  " + NUMBER.format(xp), MUTED, 10, Font.PLAIN));
 		}
+		BreathingProgression.Style active = BreathingProgression.style(profile.activeBreathingStyle);
+		skill.add(Box.createVerticalStrut(7));
+		skill.add(label(active == null ? "No breathing style equipped" : active.name + " Breathing",
+			active == null ? MUTED : BreathingEffectOverlay.color(active.id), 11, Font.BOLD));
 		if (crowMessage != null)
 		{
 			skill.add(Box.createVerticalStrut(8));
@@ -201,65 +205,6 @@ final class DemonSlayerPanel extends PluginPanel
 		append(skill);
 		showMissions();
 
-		JPanel kills = card();
-		kills.add(label("EXTERMINATIONS", GOLD, 11, Font.BOLD));
-		kills.add(Box.createVerticalStrut(8));
-		kills.add(row("Normal", Progression.kills(profile.normalRecords)));
-		kills.add(row("Boss", Progression.kills(profile.bossRecords)));
-		kills.add(Box.createVerticalStrut(5));
-		kills.add(row("TOTAL", Progression.kills(profile)));
-		kills.add(Box.createVerticalStrut(6));
-		kills.add(label("Progress saves automatically", MUTED, 9, Font.PLAIN));
-		kills.add(Box.createVerticalStrut(7));
-		JButton sync = button("REFRESH RUNELITE KC", false);
-		sync.setMaximumSize(new Dimension(Integer.MAX_VALUE, 31));
-		sync.addActionListener(event -> onSync.run());
-		kills.add(sync);
-		if (syncMessage != null)
-		{
-			kills.add(Box.createVerticalStrut(5));
-			JLabel summary = label(syncMessage.length() > 27 ? syncMessage.substring(0, 26) + "…"
-				: syncMessage, MUTED, 9, Font.PLAIN);
-			summary.setToolTipText(syncMessage);
-			kills.add(summary);
-		}
-		if (!unresolved.isEmpty())
-		{
-			JButton details = button(unresolved.size() + " UNRESOLVED KC NAMES", false);
-			details.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-			details.addActionListener(event -> JOptionPane.showMessageDialog(this,
-				String.join("\n", unresolved), "Unresolved RuneLite KC names", JOptionPane.INFORMATION_MESSAGE));
-			kills.add(Box.createVerticalStrut(5));
-			kills.add(details);
-		}
-		if (profile.lastBossSync > 0)
-		{
-			kills.add(Box.createVerticalStrut(5));
-			kills.add(label("Last sync  " + DateFormat.getDateTimeInstance(DateFormat.SHORT,
-				DateFormat.SHORT).format(new Date(profile.lastBossSync)), MUTED, 9, Font.PLAIN));
-		}
-		append(kills);
-		JPanel breathing = card();
-		breathing.add(label("BREATHING STYLE", GOLD, 11, Font.BOLD));
-		BreathingProgression.Style active = BreathingProgression.style(profile.activeBreathingStyle);
-		breathing.add(label(active == null ? "None equipped" : active.name + " Breathing", TEXT, 11, Font.PLAIN));
-		breathing.add(row("Available points", profile.breathingPointsAvailable));
-		append(breathing);
-		JPanel rewards = card();
-		rewards.add(label("CORPS REWARDS", GOLD, 11, Font.BOLD));
-		rewards.add(label("Rank badge: " + RANK_NUMERALS[Progression.rankIndex(level)], TEXT, 10, Font.PLAIN));
-		rewards.add(label("Boss crest: " + Progression.bossTier(profile) + " / 6", TEXT, 10, Font.PLAIN));
-		rewards.add(label("Mastery border: " + Progression.masteryTier(profile) + " / 4", TEXT, 10, Font.PLAIN));
-		rewards.add(label("Local title: " + (level >= 50 && config.localTitle() ? "on" : "off"),
-			MUTED, 10, Font.PLAIN));
-		append(rewards);
-		JPanel reset = card();
-		reset.add(label("PROGRESSION", GOLD, 11, Font.BOLD));
-		JButton resetButton = button("RESET", false);
-		resetButton.setToolTipText("Reset Demon Slayer progression for this RuneScape profile");
-		resetButton.addActionListener(event -> confirmReset());
-		reset.add(resetButton);
-		append(reset);
 		JPanel debug = developerSection.get();
 		if (debug != null)
 		{
@@ -293,6 +238,8 @@ final class DemonSlayerPanel extends PluginPanel
 		mission.add(label("Next Breathing Point chance: "
 			+ MissionSystem.nextChance(profile.breathingDryStreak) + "%", GOLD, 10, Font.BOLD));
 		mission.add(label("Dry streak: " + profile.breathingDryStreak, MUTED, 10, Font.PLAIN));
+		mission.add(Box.createVerticalStrut(7));
+		mission.add(row("Breathing points", profile.breathingPointsAvailable));
 		append(mission);
 	}
 
@@ -310,7 +257,7 @@ final class DemonSlayerPanel extends PluginPanel
 		showRewards();
 	}
 
-	private void confirmReset()
+	void confirmReset()
 	{
 		int choice = JOptionPane.showConfirmDialog(this,
 			"Erase Demon Slayer XP, kills, missions, and Breathing progress for this RuneScape profile?\n"
@@ -443,6 +390,45 @@ final class DemonSlayerPanel extends PluginPanel
 
 	private void showRecords()
 	{
+		JPanel kills = card();
+		kills.add(label("EXTERMINATIONS", GOLD, 11, Font.BOLD));
+		kills.add(Box.createVerticalStrut(8));
+		kills.add(row("Normal", Progression.kills(profile.normalRecords)));
+		kills.add(row("Boss", Progression.kills(profile.bossRecords)));
+		kills.add(Box.createVerticalStrut(5));
+		kills.add(row("TOTAL", Progression.kills(profile)));
+		kills.add(Box.createVerticalStrut(6));
+		kills.add(label("Progress saves automatically", MUTED, 9, Font.PLAIN));
+		kills.add(Box.createVerticalStrut(7));
+		JButton sync = button("REFRESH RUNELITE KC", false);
+		sync.setMaximumSize(new Dimension(Integer.MAX_VALUE, 31));
+		sync.addActionListener(event -> onSync.run());
+		kills.add(sync);
+		if (syncMessage != null)
+		{
+			kills.add(Box.createVerticalStrut(5));
+			JLabel summary = label(syncMessage.length() > 27 ? syncMessage.substring(0, 26) + "…"
+				: syncMessage, MUTED, 9, Font.PLAIN);
+			summary.setToolTipText(syncMessage);
+			kills.add(summary);
+		}
+		if (!unresolved.isEmpty())
+		{
+			JButton details = button(unresolved.size() + " UNRESOLVED KC NAMES", false);
+			details.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+			details.addActionListener(event -> JOptionPane.showMessageDialog(this,
+				String.join("\n", unresolved), "Unresolved RuneLite KC names", JOptionPane.INFORMATION_MESSAGE));
+			kills.add(Box.createVerticalStrut(5));
+			kills.add(details);
+		}
+		if (profile.lastBossSync > 0)
+		{
+			kills.add(Box.createVerticalStrut(5));
+			kills.add(label("Last sync  " + DateFormat.getDateTimeInstance(DateFormat.SHORT,
+				DateFormat.SHORT).format(new Date(profile.lastBossSync)), MUTED, 9, Font.PLAIN));
+		}
+		append(kills);
+
 		JPanel summary = card();
 		summary.add(label("BESTIARY  /  EXTERMINATIONS", GOLD, 10, Font.BOLD));
 		summary.add(Box.createVerticalStrut(8));
@@ -471,7 +457,7 @@ final class DemonSlayerPanel extends PluginPanel
 		}
 		for (Progression.Record record : records)
 		{
-			section.add(label(record.name + "  •  " + record.kills + " kills", TEXT, 10, Font.PLAIN));
+			recordEntry(section, record);
 		}
 		if (records.isEmpty()) section.add(label("No exterminations recorded yet.", MUTED, 10, Font.PLAIN));
 		append(section);
@@ -492,13 +478,28 @@ final class DemonSlayerPanel extends PluginPanel
 		}
 		for (Progression.Record record : records)
 		{
-			section.add(label(record.name, TEXT, 11, Font.BOLD));
-			section.add(row("Kills", record.kills));
-			section.add(label("LV " + record.level + "  •  " + type(record), MUTED, 9, Font.PLAIN));
-			section.add(label(NUMBER.format(record.xp) + " XP earned", GOLD, 9, Font.PLAIN));
-			section.add(Box.createVerticalStrut(6));
+			recordEntry(section, record);
 		}
 		append(section);
+	}
+
+	private void recordEntry(JPanel section, Progression.Record record)
+	{
+		Color tint = record.vampire ? new Color(205, 120, 166) : record.demon ? new Color(231, 133, 91) : new Color(132, 186, 204);
+		JPanel entry = new JPanel();
+		entry.setLayout(new BoxLayout(entry, BoxLayout.Y_AXIS));
+		entry.setBackground(INK);
+		entry.setAlignmentX(LEFT_ALIGNMENT);
+		entry.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, tint), new EmptyBorder(8, 5, 8, 5)));
+		JLabel name = label(record.name, tint, 11, Font.BOLD);
+		if (record.name.length() > 27) name.setText("<html><div style=" + '"' + "width:112px" + '"' + ">" + record.name.replace("&", "&amp;").replace("<", "&lt;") + "</div></html>");
+		entry.add(name);
+		entry.add(label("LV " + record.level + "  •  " + type(record), MUTED, 9, Font.PLAIN));
+		entry.add(Box.createVerticalStrut(5));
+		entry.add(row("Kills", record.kills));
+		entry.add(label(NUMBER.format(record.xp) + " XP earned", TEXT, 10, Font.PLAIN));
+		section.add(entry);
+		section.add(Box.createVerticalStrut(8));
 	}
 
 	private static void addMatchingRecords(List<Progression.Record> result,
@@ -522,53 +523,87 @@ final class DemonSlayerPanel extends PluginPanel
 	private void showRewards()
 	{
 		int level = Progression.level(profile);
-		long xp = Progression.xp(profile);
-		long bosses = Progression.kills(profile.bossRecords);
-		JPanel rank = card();
-		rank.add(label("EQUIPPED CORPS REGALIA", GOLD, 11, Font.BOLD));
-		rank.add(Box.createVerticalStrut(8));
-		rank.add(label(Progression.RANKS[Progression.rankIndex(level)].toUpperCase(Locale.ROOT)
-			+ "  •  LEVEL " + level, TEXT, 14, Font.BOLD));
-		rank.add(Box.createVerticalStrut(7));
-		rank.add(reward("Rank frame", true));
-		rank.add(reward(Progression.RANKS[Progression.rankIndex(level)] + " badge ("
-			+ RANK_NUMERALS[Progression.rankIndex(level)] + ")", true));
-		rank.add(reward("Corps XP counter on Profile", level >= 50
-			&& config.counterStyle() != DemonSlayerConfig.CounterStyle.CLASSIC));
-		rank.add(reward("Local title: " + (level < 50 ? "locked" : config.localTitle() ? "on" : "off in settings"),
-			level >= 50 && config.localTitle()));
-		rank.add(reward("Boss crest: tier " + Progression.bossTier(profile) + " / 6",
-			Progression.bossTier(profile) > 0));
-		rank.add(Box.createVerticalStrut(7));
-		int nextRank = Progression.rankIndex(level) + 1;
-		if (nextRank < Progression.RANKS.length)
+		int rank = Progression.rankIndex(level);
+		rewardCard(RANK_NUMERALS[rank], "CORPS BADGE", Progression.RANKS[rank],
+			"Your badge and profile frame", GOLD);
+		if (rank + 1 < Progression.RANKS.length)
 		{
-			rank.add(label("NEXT  " + Progression.RANKS[nextRank] + "  •  LEVEL "
-				+ Progression.RANK_LEVELS[nextRank], MUTED, 9, Font.BOLD));
+			JPanel next = card();
+			next.add(label("NEXT RANK", MUTED, 10, Font.BOLD));
+			next.add(label(Progression.RANKS[rank + 1], TEXT, 14, Font.BOLD));
+			next.add(label("Unlocks at level " + Progression.RANK_LEVELS[rank + 1], GOLD, 10, Font.PLAIN));
+			append(next);
 		}
-		else
+		rewardCard("T", "CHARACTER TITLE", level < 50 ? "Unlocks at level 50"
+			: config.localTitle() ? "Enabled" : "Disabled in settings", "Visible beside your character", GOLD);
+		int tier = Progression.bossTier(profile);
+		rewardCard("◆", "BOSS CREST", "Tier " + tier + " / 6", "Earned through boss exterminations", CRIMSON.brighter());
+		milestones("CREST PROGRESS", Progression.kills(profile.bossRecords), Progression.BOSS_MILESTONES, "kills");
+		if (level >= 99)
 		{
-			rank.add(label("ALL CORPS RANKS UNLOCKED", GOLD, 9, Font.BOLD));
+			rewardCard("✦", "HASHIRA MASTERY", "Border tier " + Progression.masteryTier(profile) + " / 4",
+				"Prestige earned beyond level 99", GOLD);
+			milestones("NEXT PRESTIGE", Progression.xp(profile), Progression.MASTERY_MILESTONES, "XP");
 		}
-		append(rank);
-
-		JPanel mastery = card();
-		mastery.add(label("HASHIRA MASTERY", GOLD, 11, Font.BOLD));
-		mastery.add(Box.createVerticalStrut(8));
-		for (long milestone : Progression.MASTERY_MILESTONES)
-		{
-			mastery.add(reward((milestone / 1_000_000) + "m XP  •  prestige border", xp >= milestone));
-		}
-		for (long milestone : Progression.BOSS_MILESTONES)
-		{
-			mastery.add(reward(NUMBER.format(milestone) + " bosses  •  crest", bosses >= milestone));
-		}
-		append(mastery);
 	}
 
-	private static JLabel reward(String text, boolean unlocked)
+	private void milestones(String title, long current, long[] thresholds, String unit)
 	{
-		return label((unlocked ? "◆  " : "◇  ") + text, unlocked ? TEXT : MUTED, 10, Font.PLAIN);
+		JPanel panel = card();
+		panel.add(label(title, GOLD, 10, Font.BOLD));
+		long previous = 0;
+		for (long threshold : thresholds)
+		{
+			if (current < threshold)
+			{
+				panel.add(Box.createVerticalStrut(8));
+				panel.add(new ProgressBar((double) (current - previous) / (threshold - previous), GOLD));
+				panel.add(Box.createVerticalStrut(6));
+				panel.add(label(NUMBER.format(current) + " / " + NUMBER.format(threshold) + " " + unit, TEXT, 11, Font.PLAIN));
+				panel.add(label(NUMBER.format(threshold - current) + " " + unit + " remaining", MUTED, 10, Font.PLAIN));
+				append(panel);
+				return;
+			}
+			previous = threshold;
+		}
+		panel.add(label("All milestones unlocked", TEXT, 11, Font.BOLD));
+		append(panel);
+	}
+
+	private void rewardCard(String glyph, String title, String value, String description, Color tint)
+	{
+		JPanel panel = card();
+		JPanel heading = new JPanel(new BorderLayout(8, 0));
+		heading.setOpaque(false);
+		heading.setAlignmentX(LEFT_ALIGNMENT);
+		JPanel emblem = new JPanel()
+		{
+			@Override protected void paintComponent(Graphics graphics)
+			{
+				Graphics2D g = (Graphics2D) graphics.create();
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g.setColor(new Color(tint.getRed(), tint.getGreen(), tint.getBlue(), 25));
+				g.fillOval(1, 1, 38, 38);
+				g.setColor(tint);
+				g.drawOval(1, 1, 38, 38);
+				g.drawOval(5, 5, 30, 30);
+				g.setFont(new Font("Serif", Font.BOLD, 15));
+				g.drawString(glyph, 20 - g.getFontMetrics().stringWidth(glyph) / 2, 26);
+				g.dispose();
+			}
+		};
+		emblem.setOpaque(false);
+		emblem.setPreferredSize(new Dimension(41, 41));
+		heading.add(emblem, BorderLayout.WEST);
+		heading.add(label(title.replace(" ", "<br>"), tint, 10, Font.BOLD), BorderLayout.CENTER);
+		// Explicit HTML keeps the compact emblem heading within the sidebar.
+		((JLabel) heading.getComponent(1)).setText("<html>" + title.replace(" ", "<br>") + "</html>");
+		panel.add(heading);
+		panel.add(Box.createVerticalStrut(9));
+		panel.add(label(value, TEXT, 13, Font.BOLD));
+		panel.add(Box.createVerticalStrut(4));
+		panel.add(label(description, MUTED, 10, Font.PLAIN));
+		append(panel);
 	}
 
 	private static JPanel row(String name, long number)

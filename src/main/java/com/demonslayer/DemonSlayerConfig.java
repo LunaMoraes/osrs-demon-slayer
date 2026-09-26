@@ -32,4 +32,11 @@ public interface DemonSlayerConfig extends Config
 	{
 		return CounterStyle.AUTO;
 	}
+	@ConfigItem(keyName = "resetProgression", name = "Reset progression…",
+		description = "Open the confirmation dialog to erase this profile's Demon Slayer progress",
+		position = 100)
+	default boolean resetProgression()
+	{
+		return false;
+	}
 }

@@ -61,6 +61,7 @@ public class DemonSlayerPlugin extends Plugin
 		int deathPlane;
 		int deathRegionId;
 		int size;
+		int height;
 	}
 
 	@Inject private Client client;
@@ -327,7 +328,7 @@ public class DemonSlayerPlugin extends Plugin
 				deathRegionId,
 				state.combatLevel, missionRequirements::eligible);
 			breathingOverlay.play(profile.activeBreathingStyle, npc.getLocalLocation(), client.getPlane(),
-				state.size);
+				state.size, state.height);
 			afterAward(beforeXp, beforeLevel, beforeKills, false);
 			if (mission.message != null)
 			{
@@ -360,6 +361,12 @@ public class DemonSlayerPlugin extends Plugin
 	{
 		if ("demon-slayer-display".equals(event.getGroup()))
 		{
+			if ("resetProgression".equals(event.getKey()) && "true".equals(event.getNewValue()))
+			{
+				configManager.setConfiguration("demon-slayer-display", "resetProgression", false);
+				javax.swing.SwingUtilities.invokeLater(() -> { if (panel != null) panel.confirmReset(); });
+			}
+
 			refreshPanel();
 			return;
 		}
@@ -416,6 +423,7 @@ public class DemonSlayerPlugin extends Plugin
 		state.npcId = effectiveId(npc);
 		state.combatLevel = combatLevel(npc);
 		state.size = npcSize(npc);
+		state.height = Math.max(80, npc.getLogicalHeight());
 		tracked.put(npc, state);
 		attribution.spawn(state.token);
 		return state;
@@ -460,7 +468,7 @@ public class DemonSlayerPlugin extends Plugin
 			MissionSystem.Result mission = missions.liveKill(profile, state.monster, state.npcId,
 				state.deathRegionId,
 				state.combatLevel, missionRequirements::eligible);
-			breathingOverlay.play(profile.activeBreathingStyle, state.deathLocation, state.deathPlane, state.size);
+			breathingOverlay.play(profile.activeBreathingStyle, state.deathLocation, state.deathPlane, state.size, state.height);
 			afterAward(beforeXp, beforeLevel, beforeKills, true);
 			if (mission.message != null)
 			{
